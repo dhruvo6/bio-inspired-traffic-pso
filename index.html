@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>TrafficMind — Navi Mumbai PSO Traffic Signal Optimization</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Browser simulation comparing fixed-time traffic signals with PSO-optimized timing at simulated Navi Mumbai junctions.">
+<meta name="theme-color" content="#0b1220">
+<title>TrafficMind: Navi Mumbai PSO Traffic Signal Optimization</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='90'%3E%F0%9F%9A%A6%3C/text%3E%3C/svg%3E">
 <style>
 :root {
   --bg: #0b1220;
@@ -15,19 +18,26 @@
   --r: #ef4444;
   --a: #f59e0b;
   --v: #8b5cf6;
+  --v-strong: #7c3aed;
   color-scheme: dark;
-}
-@media(prefers-color-scheme:light) {
-  :root:not([data-x]) { --bg: #0b1220; }
 }
 * { box-sizing: border-box; }
 body {
   margin: 0;
   background: var(--bg);
   color: var(--t);
-  font: 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif;
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
   padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
 }
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 2px; }
 header {
   display: flex;
   flex-wrap: wrap;
@@ -40,7 +50,7 @@ header {
   background: var(--bg);
   z-index: 5;
 }
-header b { font-size: 18px; margin-right: 12px; }
+.brand { font-size: 18px; margin: 0 12px 0 0; }
 nav { display: flex; gap: 6px; flex-wrap: wrap; }
 button, select, input {
   font: inherit;
@@ -52,14 +62,15 @@ button, select, input {
 }
 button { cursor: pointer; }
 button:hover { border-color: var(--v); }
-button.pri { background: var(--v); border-color: var(--v); }
+button.pri { background: var(--v-strong); border-color: var(--v-strong); }
 button.on { border-color: var(--v); background: #2a2250; }
 button:disabled { opacity: .4; cursor: default; }
 input[type=number] { width: 72px; }
 input[type=range] { width: 100%; padding: 0; }
 main { max-width: 1180px; margin: auto; padding: 16px; }
-section { display: none; }
-section.on { display: block; }
+main > .panel { display: none; }
+main > .panel.on { display: block; }
+footer { max-width: 1180px; margin: auto; padding: 0 16px 24px; font-size: 13px; color: var(--m); }
 .card {
   background: var(--p);
   border: 1px solid var(--b);
@@ -72,10 +83,11 @@ section.on { display: block; }
   gap: 14px;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
-h1 { font-size: 28px; margin: 6px 0; }
+.hero { font-size: 28px; margin: 6px 0; }
 h2 { font-size: 18px; margin: 0 0 8px; }
 h3 { font-size: 15px; margin: 0 0 6px; }
 .m { color: var(--m); }
+.small { font-size: 13px; margin-top: 4px; }
 .row {
   display: flex;
   flex-wrap: wrap;
@@ -90,6 +102,8 @@ label {
   flex-direction: column;
   gap: 2px;
 }
+label.opt { flex-direction: row; gap: 6px; align-items: center; }
+label.opt input { width: auto; }
 canvas {
   width: 100%;
   height: auto;
@@ -101,14 +115,15 @@ canvas {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 8px;
+  margin: 0;
 }
 .kp div {
   background: #0f172a;
   border-radius: 10px;
   padding: 8px;
 }
-.kp span { display: block; font-size: 12px; color: var(--m); }
-.kp b { font-size: 18px; }
+.kp dt { font-size: 12px; color: var(--m); }
+.kp dd { margin: 0; font-size: 18px; font-weight: 700; }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
 th, td { padding: 5px 8px; border-bottom: 1px solid var(--b); text-align: right; }
 th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
@@ -121,7 +136,7 @@ th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: l
   border-radius: 5px;
   overflow: hidden;
 }
-.bar i {
+.bar span {
   display: block;
   height: 100%;
   background: var(--v);
@@ -134,52 +149,59 @@ th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: l
   font-size: 12px;
   border: 1px solid var(--b);
 }
+.tag:empty { display: none; }
+.status { margin: 6px 0; font-size: 14px; }
+.pso-title { color: #c4b5fd; }
 .warn { border-left: 4px solid var(--a); }
+.after-table { margin-top: 12px; }
+.note { color: #fcd34d; font-size: 13px; margin: 4px 0; }
+.note:empty { display: none; }
 ol li, ul li { margin: 4px 0; }
 code { background: #0f172a; padding: 1px 5px; border-radius: 5px; }
 </style>
 </head>
 <body>
 <header>
-  <b>🚦 TrafficMind: Navi Mumbai AI Signal Optimizer</b>
-  <nav id="nav"></nav>
+  <h1 class="brand"><span aria-hidden="true">🚦</span> TrafficMind: Navi Mumbai signal timing</h1>
+  <nav id="nav" aria-label="Main sections"></nav>
 </header>
 <main>
-<section id="home" class="on">
-  <div class="card">
-    <h1>Can PSO beat fixed-time signals in Navi Mumbai?</h1>
-    <p class="m">A real microscopic simulation (IDM car-following, seeded Poisson arrivals) and a real Particle Swarm Optimizer whose fitness is computed by that simulator. Tested against simulated equivalents of major Navi Mumbai junctions.</p>
+<div class="panel on" id="home">
+  <article class="card">
+    <h2 class="hero">Can PSO beat fixed-time signals in Navi Mumbai?</h2>
+    <p class="m">This runs a vehicle-by-vehicle simulation (IDM car-following, random arrivals from a fixed seed) and a Particle Swarm Optimizer that scores each timing plan by running that simulation. The junction names are just labels and the traffic volumes are invented, not surveyed.</p>
     <div class="row">
-      <button class="pri" onclick="go('sim')">Start Simulation</button>
-      <button onclick="go('exp')">Run an Experiment</button>
-      <button onclick="go('pso')">How PSO Works</button>
+      <button type="button" class="pri" data-go="sim">Start Simulation</button>
+      <button type="button" data-go="exp">Run an Experiment</button>
+      <button type="button" data-go="pso">How PSO Works</button>
     </div>
-  </div>
+  </article>
   <div class="grid">
-    <div class="card">
+    <article class="card">
       <h3>Conventional fixed-time</h3>
-      <p class="m">Green durations are set in advance (default 30 s + 30 s, 3 s amber, 2 s all-red) and never change during a run. Simple and predictable, but blind to which approach actually has the queue.</p>
-    </div>
-    <div class="card">
+      <p class="m">Green times are set in advance (30 s + 30 s by default, 3 s amber, 2 s all-red) and never change during a run. Simple and predictable, but it can't tell which approach has the longer queue.</p>
+    </article>
+    <article class="card">
       <h3>PSO-optimized timing</h3>
-      <p class="m">Each particle is a candidate plan <code>x=[g₁,g₂]</code>. The swarm searches for green splits that minimize a delay-and-queue objective measured by simulation. An optional rolling-horizon mode re-optimizes from observed arrivals at cycle boundaries.</p>
-    </div>
+      <p class="m">Each particle is a candidate plan <code>x=[g₁,g₂]</code>. The swarm looks for green splits that keep delay and queues low in the simulation. An optional rolling-horizon mode re-optimizes at cycle boundaries using the arrivals it has seen so far.</p>
+    </article>
   </div>
-  <div class="card">
+  <article class="card">
     <h2>Measured KPIs (last experiment)</h2>
-    <div id="kpi" class="m">No measured results yet. Run an experiment to populate this panel — nothing here is a placeholder.</div>
-  </div>
-  <div class="card warn">
+    <div id="kpi" class="m">Nothing yet. Run an experiment and the numbers show up here.</div>
+  </article>
+  <article class="card warn">
     <h3>Why fixed-time plans struggle</h3>
-    <p class="m">When demand shifts (e.g. heavy north–south flow), an equal split wastes green on the lighter approach while the busy one builds a queue that cannot discharge in its green. PSO can re-balance the split. It is not guaranteed to win: a plan tuned to one demand pattern can do worse when demand changes mid-run (the "Sudden surge" scenario can show this).</p>
-  </div>
-  <div class="card">
+    <p class="m">When demand shifts (say, heavy north–south flow), an equal split wastes green on the quiet approach while the busy one builds a queue it can't clear in one green. PSO can rebalance the split, but it won't always win. A plan tuned for one demand pattern can do worse when demand changes mid-run, and the "Sudden surge" scenario can show that.</p>
+  </article>
+  <article class="card">
     <h3>PSO in simple words</h3>
-    <p class="m">Particle Swarm Optimization is a population-based algorithm inspired by the collective movement of birds and fish. Each particle represents a possible timing plan; particles explore and gradually move toward plans that reduce delay. It does not guarantee a global optimum.</p>
-  </div>
-</section>
+    <p class="m">PSO is a search method loosely modeled on a flock of birds. Each particle is one possible timing plan. Over many rounds the particles drift toward plans that cut delay, pulled by their own best find and the swarm's best find. It can't promise the best possible answer.</p>
+  </article>
+</div>
 
-<section id="sim">
+<div class="panel" id="sim" role="region" aria-labelledby="simTitle">
+  <h2 class="sr" id="simTitle">Simulator</h2>
   <div class="card">
     <div class="row">
       <label>Navi Mumbai Node
@@ -200,154 +222,156 @@ code { background: #0f172a; padding: 1px 5px; border-radius: 5px; }
           <option value="1.4">High</option>
         </select>
       </label>
-      <label>N veh/min<input type="number" id="r0" min="0" max="30"></label>
-      <label>S<input type="number" id="r1" min="0" max="30"></label>
-      <label>E<input type="number" id="r2" min="0" max="30"></label>
-      <label>W<input type="number" id="r3" min="0" max="30"></label>
-      <label>Duration s<input type="number" id="dur" value="600" min="120" max="1800"></label>
+      <label>North veh/min<input type="number" id="r0" min="0" max="30"></label>
+      <label>South veh/min<input type="number" id="r1" min="0" max="30"></label>
+      <label>East veh/min<input type="number" id="r2" min="0" max="30"></label>
+      <label>West veh/min<input type="number" id="r3" min="0" max="30"></label>
+      <label>Duration (s)<input type="number" id="dur" value="600" min="120" max="1800"></label>
       <label>Seed<input type="number" id="seed" value="42"></label>
     </div>
     <div class="row">
-      <label>Fixed g₁ (N-S) s<input type="number" id="g1" value="30" min="7" max="60"></label>
-      <label>Fixed g₂ (E-W) s<input type="number" id="g2" value="30" min="7" max="60"></label>
-      <label>Swarm<input type="number" id="sw" value="20" min="5" max="60"></label>
+      <label>Fixed g₁ (N-S) in s<input type="number" id="g1" value="30" min="7" max="60"></label>
+      <label>Fixed g₂ (E-W) in s<input type="number" id="g2" value="30" min="7" max="60"></label>
+      <label>Swarm size<input type="number" id="sw" value="20" min="5" max="60"></label>
       <label>Iterations<input type="number" id="it" value="30" min="5" max="100"></label>
     </div>
     <div class="row">
-      <button class="pri" id="bStart">Start</button>
-      <button id="bPause">Pause</button>
-      <button id="bResume">Resume</button>
-      <button id="bReset">Reset</button>
-      <span class="m">Speed</span><span id="spd"></span>
+      <button type="button" class="pri" id="bStart">Start</button>
+      <button type="button" id="bPause" disabled>Pause</button>
+      <button type="button" id="bResume" disabled>Resume</button>
+      <button type="button" id="bReset">Reset</button>
+      <span class="m" id="spdLbl">Speed</span><span id="spd" role="group" aria-labelledby="spdLbl"></span>
       <span id="msg" class="tag">idle</span>
     </div>
-    <div class="bar"><i id="prog"></i></div>
-    <div class="m" id="optinfo" style="font-size:13px;margin-top:4px">Both controllers run side by side on the identical vehicle list. PSO optimizes on a separate training arrival sample, then is tested on this one.</div>
+    <div class="bar" role="progressbar" aria-label="Optimization progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="prog"></span></div>
+    <div class="m small" id="optinfo">Both controllers get the same vehicles. PSO tunes itself on a separate training sample first, then gets tested on this one.</div>
+    <p class="note" id="sWarn" aria-live="polite"></p>
   </div>
   <div class="grid">
-    <div class="card">
-      <h2>Conventional fixed-time <span class="tag" id="t0"></span></h2>
-      <canvas id="c0" width="380" height="380"></canvas>
-      <div class="tag" id="s0" style="margin:6px 0;font-size:14px"></div>
-      <div class="kp" id="k0"></div>
-    </div>
-    <div class="card">
-      <h2 style="color:#c4b5fd">PSO-optimized <span class="tag" id="t1"></span></h2>
-      <canvas id="c1" width="380" height="380"></canvas>
-      <div class="tag" id="s1" style="margin:6px 0;font-size:14px"></div>
-      <div class="kp" id="k1"></div>
-    </div>
+    <article class="card">
+      <h3>Conventional fixed-time <span class="tag" id="t0"></span></h3>
+      <canvas id="c0" width="380" height="380" role="img" aria-label="Top-down view of the fixed-time junction simulation"></canvas>
+      <div class="tag status" id="s0"></div>
+      <dl class="kp" id="k0"></dl>
+    </article>
+    <article class="card">
+      <h3 class="pso-title">PSO-optimized <span class="tag" id="t1"></span></h3>
+      <canvas id="c1" width="380" height="380" role="img" aria-label="Top-down view of the PSO-optimized junction simulation"></canvas>
+      <div class="tag status" id="s1"></div>
+      <dl class="kp" id="k1"></dl>
+    </article>
   </div>
   <div class="grid">
-    <div class="card">
+    <article class="card">
       <h3>Total queue over time (vehicles)</h3>
-      <canvas id="ch0" width="560" height="260"></canvas>
-    </div>
-    <div class="card">
+      <canvas id="ch0" width="560" height="260" role="img" aria-label="Line chart of total queue length over time for fixed-time and PSO"></canvas>
+    </article>
+    <article class="card">
       <h3>Cumulative vehicles served</h3>
-      <canvas id="ch1" width="560" height="260"></canvas>
-    </div>
+      <canvas id="ch1" width="560" height="260" role="img" aria-label="Line chart of cumulative vehicles served over time for fixed-time and PSO"></canvas>
+    </article>
   </div>
-  <div class="card" id="rep">
-    <h2>Final comparison</h2>
-    <div class="m">Appears when the run finishes (final measured values, one seeded run — not an average).</div>
-  </div>
-</section>
+  <article class="card" id="rep">
+    <h3>Final comparison</h3>
+    <div class="m">Shows up when the run ends. These are final values from one seeded run, not an average.</div>
+  </article>
+</div>
 
-<section id="exp">
-  <div class="card">
-    <h2>Experiment lab</h2>
-    <p class="m">For each scenario: PSO is optimized on a training arrival sample (seed+1000), then both controllers are tested on the same held-out trial seeds and averaged. All values are simulated.</p>
+<div class="panel" id="exp" role="region" aria-labelledby="expTitle">
+  <article class="card">
+    <h2 id="expTitle">Experiment lab</h2>
+    <p class="m">For each scenario, PSO is tuned on a training arrival sample (seed+1000). Then both controllers are tested on the same held-out trial seeds and the results are averaged. Everything here is simulated.</p>
     <div class="row">
-      <label>Trials<input type="number" id="eTr" value="3" min="1" max="10"></label>
-      <label>Duration s<input type="number" id="eDur" value="600" min="120" max="1800"></label>
+      <label>Trials<input type="number" id="eTr" value="5" min="1" max="10"></label>
+      <label>Duration (s)<input type="number" id="eDur" value="600" min="120" max="1800"></label>
       <label>Seed<input type="number" id="eSeed" value="42"></label>
-      <label>Swarm<input type="number" id="eSw" value="20" min="5" max="60"></label>
+      <label>Swarm size<input type="number" id="eSw" value="20" min="5" max="60"></label>
       <label>Iterations<input type="number" id="eIt" value="30" min="5" max="100"></label>
-      <label>Fixed g₁<input type="number" id="eg1" value="30"></label>
-      <label>Fixed g₂<input type="number" id="eg2" value="30"></label>
+      <label>Fixed g₁<input type="number" id="eg1" value="30" min="7" max="60"></label>
+      <label>Fixed g₂<input type="number" id="eg2" value="30" min="7" max="60"></label>
     </div>
-    <div class="row" id="eScn"></div>
+    <div class="row" id="eScn" role="group" aria-label="Scenarios to test"></div>
+    <p class="note" id="eWarn" aria-live="polite"></p>
     <div class="row">
-      <label style="flex-direction:row;gap:6px;align-items:center">
-        <input type="checkbox" id="eAd" style="width:auto">Also test rolling-horizon adaptive PSO (slower)
-      </label>
+      <label class="opt"><input type="checkbox" id="eAd" checked>Also test rolling-horizon adaptive PSO (slower)</label>
     </div>
     <div class="row">
-      <button class="pri" id="bExp">Run Experiment</button>
-      <button id="bCsv" disabled>Export CSV</button>
-      <button id="bRpt" disabled>Download report</button>
+      <button type="button" class="pri" id="bExp">Run Experiment</button>
+      <button type="button" id="bCsv" disabled>Export CSV</button>
+      <button type="button" id="bRpt" disabled>Download report</button>
       <span id="eMsg" class="m"></span>
     </div>
-    <div class="bar"><i id="eProg"></i></div>
-  </div>
-  <div class="card">
+    <div class="bar" role="progressbar" aria-label="Experiment progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="eProg"></span></div>
+  </article>
+  <article class="card">
     <h2>Results</h2>
     <div class="wrap" id="eRes"><span class="m">No results yet.</span></div>
-  </div>
-  <div class="card">
+  </article>
+  <article class="card">
     <h3>Average waiting time (s) by scenario</h3>
-    <canvas id="eBar" width="900" height="280"></canvas>
-  </div>
-</section>
+    <canvas id="eBar" width="900" height="280" role="img" aria-label="Bar chart of average waiting time per scenario for each controller"></canvas>
+  </article>
+</div>
 
-<section id="pso">
-  <div class="card">
-    <h2>Explain PSO visually</h2>
+<div class="panel" id="pso" role="region" aria-labelledby="psoTitle">
+  <article class="card">
+    <h2 id="psoTitle">How PSO works here</h2>
     <ol>
-      <li><b>Generate particles</b> — random green plans <code>[g₁,g₂]</code>.</li>
-      <li><b>Simulate each plan</b> and compute fitness <code>J = α·D/D_ref + β·Q/Q_ref</code> (D: mean delay, Q: time-avg queue, both normalized by the fixed-time baseline; α=1, β=0.3). Unserved vehicles still count their delay.</li>
-      <li><b>Personal best</b> pᵢ per particle.</li>
-      <li><b>Global best</b> g for the swarm.</li>
-      <li><b>Update</b>: <code>vᵢ←w·vᵢ+c₁r₁(pᵢ−xᵢ)+c₂r₂(g−xᵢ)</code>, <code>xᵢ←xᵢ+vᵢ</code> (w 0.9→0.4, c₁=c₂=1.5).</li>
-      <li><b>Repair</b> to 7–60 s greens and a 110 s green budget, round to seconds.</li>
-      <li><b>Repeat</b>, then deploy the best feasible plan at a cycle boundary. No guarantee of a global optimum.</li>
+      <li><strong>Generate particles.</strong> Random green plans <code>[g₁,g₂]</code>.</li>
+      <li><strong>Simulate each plan</strong> and compute fitness <code>J = α·D/D_ref + β·Q/Q_ref</code> (D: mean delay, Q: time-averaged queue, both divided by the fixed-time baseline; α=1, β=0.3). Vehicles still waiting at the end count their delay too.</li>
+      <li><strong>Personal best</strong> pᵢ for each particle.</li>
+      <li><strong>Global best</strong> g for the swarm.</li>
+      <li><strong>Update:</strong> <code>vᵢ←w·vᵢ+c₁r₁(pᵢ−xᵢ)+c₂r₂(g−xᵢ)</code>, <code>xᵢ←xᵢ+vᵢ</code> (w 0.9→0.4, c₁=c₂=1.5).</li>
+      <li><strong>Repair</strong> to 7–60 s greens within a 110 s total green budget, rounded to whole seconds.</li>
+      <li><strong>Repeat</strong>, then switch to the best valid plan at a cycle boundary. No guarantee it's the global optimum.</li>
     </ol>
     <div class="row">
-      <button class="pri" id="bDemo">Run demo optimization (current simulator scenario)</button>
+      <button type="button" class="pri" id="bDemo">Run a demo optimization (uses the simulator's current scenario)</button>
       <span id="pMsg" class="m"></span>
     </div>
-  </div>
+  </article>
   <div class="grid">
-    <div class="card">
+    <article class="card">
       <h3>Particles in search space (g₁ vs g₂)</h3>
-      <canvas id="pc" width="420" height="380"></canvas>
+      <canvas id="pc" width="420" height="380" role="img" aria-label="Scatter plot of particle positions in the g1 versus g2 search space for the selected iteration"></canvas>
       <label>Iteration <span id="pit">–</span><input type="range" id="prange" min="0" max="0" value="0"></label>
       <div class="m" id="pbest"></div>
-    </div>
-    <div class="card">
+    </article>
+    <article class="card">
       <h3>Best and mean fitness per iteration (lower is better)</h3>
-      <canvas id="pf" width="560" height="320"></canvas>
-      <div class="m">Fitness is relative to the fixed-time baseline (baseline = 1.3 by construction when D=D_ref and Q=Q_ref).</div>
-    </div>
+      <canvas id="pf" width="560" height="320" role="img" aria-label="Line chart of best and mean fitness per PSO iteration"></canvas>
+      <div class="m">Fitness is scaled to the fixed-time baseline, so the baseline itself scores 1.3 (D = D_ref and Q = Q_ref).</div>
+    </article>
   </div>
-</section>
+</div>
 
-<section id="res">
-  <div class="card">
-    <h2>Research foundation</h2>
-    <h3>Paper 1 — Abdul Kareem &amp; Mejbel, <i>Traffic Light Controller Module Based on PSO</i>, American Journal of Artificial Intelligence 2018, 2(1):7–15</h3>
+<div class="panel" id="res" role="region" aria-labelledby="resTitle">
+  <article class="card">
+    <h2 id="resTitle">Research background</h2>
+    <h3>Paper 1: Abdul Kareem &amp; Mejbel, <cite>Traffic Light Controller Module Based on PSO</cite>, American Journal of Artificial Intelligence 2018, 2(1):7–15</h3>
     <ul class="m">
-      <li>PSO selects which set of adjacent streets receives green; the fitness is a linear priority score |PC+PE+PSW−PP| (crowded, emergency vehicle, roadwork, pedestrian), fed by a separate camera-based monitor module.</li>
-      <li>Reported "flow ratio" improvements of roughly 85–96% over several multi-light layouts; PSO needed about 80–90 iterations. The paper notes PSO must finish within the cycle time to be useful.</li>
-      <li>Limitations (our reading): no vehicle-level traffic simulation, so those percentages are not comparable to delay measured here.</li>
+      <li>PSO picks which set of adjacent streets gets green. Fitness is a linear priority score |PC+PE+PSW−PP| (crowded, emergency vehicle, roadwork, pedestrian), fed by a separate camera-based monitor module.</li>
+      <li>It reports "flow ratio" gains of roughly 85–96% over several multi-light layouts, with PSO needing about 80–90 iterations. The paper notes PSO has to finish within the cycle time to be useful.</li>
+      <li>Limitations (our reading): no vehicle-level traffic simulation, so its percentages can't be compared with the delay numbers here.</li>
     </ul>
-    <h3>Paper 2 — Diaf, Tolba &amp; Nait Sidi Moh, <i>Traffic Urban Control Using an Intelligent PSO Algorithm Based on Integrated Approach</i>, Algerian Journal of Signals and Systems 2020, 5(1)</h3>
+    <h3>Paper 2: Diaf, Tolba &amp; Nait Sidi Moh, <cite>Traffic Urban Control Using an Intelligent PSO Algorithm Based on Integrated Approach</cite>, Algerian Journal of Signals and Systems 2020, 5(1)</h3>
     <ul class="m">
-      <li>Each particle is a signal cycle program whose dimensions are phase durations; fitness uses a macroscopic LWR / continuous Petri-net model with Rakha vehicle dynamics and Poisson arrivals.</li>
-      <li>Reported tuning: swarm sizes 20–200, c₁=c₂=2.05, convergence around 200+ iterations, cycle times of about 71–74 s for a single intersection.</li>
-      <li>Limitations: macroscopic model, one tested intersection, no comparison to a fixed-time baseline in the portions we read.</li>
+      <li>Each particle is a signal cycle program whose dimensions are phase durations. Fitness comes from a macroscopic LWR / continuous Petri-net model with Rakha vehicle dynamics and Poisson arrivals.</li>
+      <li>Reported tuning: swarm sizes 20–200, c₁=c₂=2.05, convergence around 200+ iterations, and cycle times of about 71–74 s for a single intersection.</li>
+      <li>Limitations: macroscopic model, one tested intersection, and no fixed-time baseline comparison in the parts we read.</li>
     </ul>
-    <h3>Taken from the papers vs. our own choices</h3>
+    <h3>What we took from the papers, and what we changed</h3>
     <ul class="m">
-      <li><b>From the literature:</b> particle = timing plan, phase durations as variables, standard velocity/position update, Poisson arrivals.</li>
-      <li><b>Our design:</b> microscopic IDM simulator, delay+queue objective normalized by a baseline, held-out test seeds, repair step, rolling-horizon extension, fixed-time baseline.</li>
+      <li><strong>From the literature:</strong> a particle is a timing plan, phase durations are the variables, the standard velocity/position update, and Poisson arrivals.</li>
+      <li><strong>Our own choices:</strong> a microscopic IDM simulator, a delay + queue objective scaled by a baseline, held-out test seeds, a repair step, the rolling-horizon extension, and a fixed-time baseline.</li>
     </ul>
-    <h3>Differences from real traffic management</h3>
-    <p class="m">Single lane per approach, straight movements only, no pedestrians, no sensor noise, perfect compliance, two phases. Rolling-horizon re-optimization here starts each internal simulation from an empty network using arrival rates estimated from past counts, and applies the result one cycle later — noisy estimates and compute time limit it. Future work: turning movements, pedestrian phases, emergency priority, sensor uncertainty, real data. Educational simulation only; not for deployment.</p>
-  </div>
-</section>
+    <h3>How this differs from real traffic control</h3>
+    <p class="m">One lane per approach, straight movements only, no pedestrians, no sensor noise, perfect driver compliance, and two phases. The rolling-horizon mode starts each internal simulation from an empty network, using arrival rates estimated from past counts, and applies the result one cycle later. Noisy estimates and compute time limit it. Future work: turning movements, pedestrian phases, emergency priority, sensor uncertainty, and real data. Educational simulation only, not for deployment.</p>
+  </article>
+</div>
 </main>
+<footer>Educational simulation. Not for real signal control.</footer>
+<div id="live" class="sr" role="status" aria-live="polite"></div>
 
 <script>
 const C={L:150,box:14,ex:100,vf:13.9,a:2.5,b:3.5,s0:2,Th:1.2,amber:3,ar:2,dt:0.1,lo:7,hi:60,cap:110};C.P=C.L+C.box+C.ex;
@@ -441,51 +465,70 @@ function adaptive(scn,arr,T,base,seed,win=150){
 }
 
 const $=id=>document.getElementById(id),sleep=()=>new Promise(r=>setTimeout(r,0));
+const setProg=(id,p)=>{const e=$(id);e.style.width=p+'%';e.parentNode.setAttribute('aria-valuenow',Math.round(p))};
 const tabs=[['home','Overview'],['sim','Simulator'],['exp','Experiments'],['pso','PSO Explained'],['res','Research']];
-$('nav').innerHTML=tabs.map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join('');
-function go(t){
-  document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===t));
-  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  if(t==='pso')drawPso();scrollTo(0,0)
+$('nav').innerHTML=tabs.map(t=>`<button type="button" data-t="${t[0]}">${t[1]}</button>`).join('');
+function go(t,quiet){
+  document.querySelectorAll('main > .panel').forEach(s=>s.classList.toggle('on',s.id===t));
+  document.querySelectorAll('nav button').forEach(b=>{
+    const on=b.dataset.t===t;b.classList.toggle('on',on);
+    if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')
+  });
+  if(t==='pso')drawPso();
+  scrollTo(0,0);
+  if(!quiet){const h=document.querySelector('#'+t+' h2');if(h){h.tabIndex=-1;h.focus({preventScroll:true})}}
 }
-$('nav').onclick=e=>e.target.dataset.t&&go(e.target.dataset.t);go('home');
+$('nav').onclick=e=>e.target.dataset.t&&go(e.target.dataset.t);
+document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
+go('home',true);
 const S={sims:null,arr:null,run:false,speed:1,acc:0,last:0,hist:[[],[]],opt:null,key:'',ended:false,busy:false,lastExp:null};
-$('spd').innerHTML=[.5,1,2,4].map(s=>`<button data-s="${s}" class="${s==1?'on':''}">${s}x</button>`).join(' ');
-$('spd').onclick=e=>{if(e.target.dataset.s){S.speed=+e.target.dataset.s;[...$('spd').children].forEach(b=>b.classList.toggle('on',b===e.target))}};
+$('spd').innerHTML=[.5,1,2,4].map(s=>`<button type="button" data-s="${s}" class="${s==1?'on':''}" aria-pressed="${s==1}" aria-label="${s} times speed">${s}x</button>`).join(' ');
+$('spd').onclick=e=>{if(e.target.dataset.s){S.speed=+e.target.dataset.s;[...$('spd').children].forEach(b=>{const on=b===e.target;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)})}};
 function loadRates(){
-  const k=$('scn').value;if(k==='custom'||k==='random'&&0)return;
+  const k=$('scn').value;if(k==='custom')return;
   const sc=k==='random'?randScn(+$('seed').value):SCN[k];
   sc.segs[0].r.forEach((v,i)=>$('r'+i).value=v)
 }
-$('scn').onchange=loadRates;$('seed').onchange=()=>{if($('scn').value==='random')loadRates()};
-[0,1,2,3].forEach(i=>$('r'+i).oninput=()=>$('scn').value='custom');loadRates();
+$('scn').onchange=()=>{loadRates();simWarn()};$('dur').oninput=simWarn;$('seed').onchange=()=>{if($('scn').value==='random')loadRates()};
+[0,1,2,3].forEach(i=>$('r'+i).oninput=()=>{$('scn').value='custom';simWarn()});loadRates();
 function getScn(){
   const k=$('scn').value,m=+$('dens').value;
   let sc=k==='custom'?{segs:[{t:0,r:[0,1,2,3].map(i=>+$('r'+i).value||0)}]}:k==='random'?randScn(+$('seed').value):SCN[k];
   return{segs:sc.segs.map(g=>({t:g.t,r:g.r.map(v=>v*m)}))}
 }
 const num=(id,lo,hi)=>Math.min(hi,Math.max(lo,Math.round(+$(id).value)||lo));
-function setMsg(t){$('msg').textContent=t}
+const announce=t=>{$('live').textContent=t};
+function ctl(){$('bPause').disabled=!S.run;$('bResume').disabled=!(S.sims&&!S.run&&!S.ended)}
+function setMsg(t){$('msg').textContent=t;if(!/^optimizing/.test(t))announce(t);ctl()}
+const durWarn=(T,keys,ad)=>{
+  const w=[];
+  if(ad&&T<300)w.push('Adaptive PSO needs about 300 s before it can switch plans, so at '+T+' s it will match Fixed.');
+  if(keys.some(k=>k==='surge'||k==='rush')&&T<450)w.push('Sudden surge and Rush hour change demand between 150 s and 420 s. Use at least 450 s to see the full pattern.');
+  return w
+};
+function simWarn(){$('sWarn').textContent=durWarn(num('dur',120,1800),[$('scn').value],false).filter(x=>!x.startsWith('Adaptive')).join(' ')}
+const sd=(L,k)=>{const m=L.reduce((a,b)=>a+b[k],0)/L.length;return L.length>1?Math.sqrt(L.reduce((a,b)=>a+(b[k]-m)**2,0)/(L.length-1)):0};
 async function ensurePlan(sc,seed,base){
   const key=JSON.stringify([sc,seed,base,$('sw').value,$('it').value]);if(S.opt&&S.key===key)return S.opt;
   S.busy=true;const n=num('sw',5,60),it=num('it',5,100),g=optimize(sc,seed,base,{n,it,H:600});let r;
-  for(;;){
+  try{for(;;){
     r=g.next();if(r.done)break;
-    $('prog').style.width=(100*r.value.it/it)+'%';setMsg(`optimizing ${r.value.it}/${it}`);
+    setProg('prog',100*r.value.it/it);setMsg(`optimizing ${r.value.it}/${it}`);
     $('optinfo').textContent=`PSO best fitness ${r.value.best.toFixed(3)} · plan [${r.value.gb}] (baseline fitness ${(1.3).toFixed(2)})`;await sleep()
-  }
-  S.opt={...r.value};S.key=key;S.busy=false;return S.opt
+  }}finally{S.busy=false}
+  S.opt={...r.value};S.key=key;return S.opt
 }
 async function start(){
   if(S.busy)return;
   const sc=getScn(),seed=num('seed',0,1e6),T=num('dur',120,1800),base=[num('g1',7,60),num('g2',7,60)];
   if(base[0]+base[1]>C.cap){setMsg('fixed g1+g2 must be ≤ 110');return}
-  S.run=false;$('bStart').disabled=true;const o=await ensurePlan(sc,seed,base);$('bStart').disabled=false;
+  S.run=false;S.sims=null;ctl();$('bStart').disabled=true;
+  let o;try{o=await ensurePlan(sc,seed,base)}catch(e){setMsg('error: '+e.message);return}finally{$('bStart').disabled=false}
   S.arr=genArr(sc,seed,T);S.sims=[new Sim(S.arr,base,T),new Sim(S.arr,o.best,T)];S.hist=[[],[]];S.ended=false;S.acc=0;S.last=performance.now();S.run=true;S.plans=[base,o.best];
-  setMsg('running');$('prog').style.width='100%';$('rep').innerHTML='<h2>Final comparison</h2><div class="m">Appears when the run finishes.</div>';requestAnimationFrame(loop)
+  setMsg('running');setProg('prog',100);$('rep').innerHTML='<h3>Final comparison</h3><div class="m">Shows up when the run ends.</div>';requestAnimationFrame(loop)
 }
 function reset(){
-  S.run=false;S.sims=null;S.ended=false;S.hist=[[],[]];setMsg('idle');$('prog').style.width='0';
+  S.run=false;S.sims=null;S.ended=false;S.hist=[[],[]];setMsg('idle');setProg('prog',0);
   [0,1].forEach(i=>{const c=$('c'+i);c.getContext('2d').clearRect(0,0,380,380);$('k'+i).innerHTML='';$('t'+i).textContent=''});charts()
 }
 $('bStart').onclick=start;
@@ -528,7 +571,7 @@ function drawInt(c,sim){
 }
 const f1=v=>v.toFixed(1);
 function kpis(m,sim){
-  return[['Avg wait (s)',f1(m.wait)],['Avg delay (s)',f1(m.delay)],['Avg queue',f1(m.qavg)],['Max queue/approach',m.qmax],['Served',m.served],['Throughput /min',f1(m.thr)],['Total delay (veh·s)',m.total.toFixed(0)],['Green split',sim.plan.join(' / ')+' s']].map(a=>`<div><span>${a[0]}</span><b>${a[1]}</b></div>`).join('')
+  return[['Avg wait (s)',f1(m.wait)],['Avg delay (s)',f1(m.delay)],['Avg queue',f1(m.qavg)],['Max queue/approach',m.qmax],['Served',m.served],['Throughput /min',f1(m.thr)],['Total delay (veh·s)',m.total.toFixed(0)],['Green split',sim.plan.join(' / ')+' s']].map(a=>`<div><dt>${a[0]}</dt><dd>${a[1]}</dd></div>`).join('')
 }
 function render(){
   if(!S.sims)return;
@@ -540,7 +583,7 @@ function render(){
 }
 function line(c,series,xl){
   const x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);
-  const pts=series.flatMap(s=>s.d);if(!pts.length){x.fillStyle='#64748b';x.fillText('no data yet',20,30);return}
+  const pts=series.flatMap(s=>s.d);if(!pts.length){x.fillStyle='#94a3b8';x.fillText('no data yet',20,30);return}
   const mx=Math.max(...pts.map(p=>p.x))||1,my=Math.max(...pts.map(p=>p.y),1)*1.1,L=40,B=24;
   x.strokeStyle='#243049';x.fillStyle='#94a3b8';x.font='11px sans-serif';
   for(let i=0;i<=4;i++){const y=H-B-(H-B-8)*i/4;x.beginPath();x.moveTo(L,y);x.lineTo(W-8,y);x.stroke();x.fillText((my*i/4).toFixed(my<5?2:0),2,y+3)}x.fillText(xl,W/2-20,H-6);
@@ -556,16 +599,16 @@ function charts(){
   line($('ch1'),[{n:'Fixed',c:'#f59e0b',d:h[0].map(p=>({x:p.t,y:p.sv}))},{n:'PSO',c:'#a78bfa',d:h[1].map(p=>({x:p.t,y:p.sv}))}],'time (s)')
 }
 const imp=(b,p,hib)=>!isFinite(b)||!isFinite(p)?null:b===0?null:((hib?p-b:b-p)/b*100);
-const impTxt=(b,p,hib)=>{const v=imp(b,p,hib);if(v===null)return'<td>n/a (zero baseline)</td>';return`<td class="${v>0.5?'good':v<-0.5?'bad':''}">${v>0?'▲ better':v<-0.5?'▼ worse':'≈ same'} ${v.toFixed(1)}%</td>`};
+const impTxt=(b,p,hib)=>{const v=imp(b,p,hib);if(v===null)return'<td>n/a (zero baseline)</td>';return`<td class="${v>0.5?'good':v<-0.5?'bad':''}">${v>0.5?'▲ better':v<-0.5?'▼ worse':'≈ same'} ${v.toFixed(1)}%</td>`};
 const MET=[['wait','Avg wait (s)',0],['delay','Avg delay (s)',0],['qmax','Max queue',0],['served','Vehicles served',1],['thr','Throughput/min',1],['total','Total delay (veh·s)',0]];
 function final(){
   const [a,b]=S.sims,A=a.m(),B=b.m();
-  $('rep').innerHTML=`<h2>Final comparison <span class="tag">simulated, single seeded run</span></h2><div class="wrap"><table><tr><th>Metric</th><th>Fixed [${S.plans[0]}]</th><th>PSO [${S.plans[1]}]</th><th>Difference</th></tr>${MET.map(m=>`<tr><td>${m[1]}</td><td>${A[m[0]].toFixed(1)}</td><td>${B[m[0]].toFixed(1)}</td>${impTxt(A[m[0]],B[m[0]],m[2])}</tr>`).join('')}</table></div><p class="m">Improvement = (Baseline−PSO)/Baseline×100 (higher-is-better metrics: (PSO−Baseline)/Baseline×100). One realization — see the Experiment lab for trial averages.</p>`
+  $('rep').innerHTML=`<h3>Final comparison <span class="tag">simulated, single seeded run</span></h3><div class="wrap"><table><caption class="sr">Fixed-time versus PSO, final values from one run</caption><thead><tr><th scope="col">Metric</th><th scope="col">Fixed [${S.plans[0]}]</th><th scope="col">PSO [${S.plans[1]}]</th><th scope="col">Difference</th></tr></thead><tbody>${MET.map(m=>`<tr><td>${m[1]}</td><td>${A[m[0]].toFixed(1)}</td><td>${B[m[0]].toFixed(1)}</td>${impTxt(A[m[0]],B[m[0]],m[2])}</tr>`).join('')}</tbody></table></div><p class="m">Improvement = (Baseline−PSO)/Baseline×100. For higher-is-better metrics it's (PSO−Baseline)/Baseline×100. This is one run; the Experiment lab has trial averages.</p>`
 }
-// PSO tab
+// PSO tab drawing
 function drawPso(){
   const o=S.opt,c=$('pc'),x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);
-  if(!o){x.fillStyle='#64748b';x.fillText('Run the simulator or the demo optimization first.',20,30);line($('pf'),[],'');return}
+  if(!o){x.fillStyle='#94a3b8';x.fillText('Run the simulator or the demo optimization first.',20,30);line($('pf'),[],'');return}
   const r=$('prange');r.max=o.hist.length-1;if(+r.value>+r.max)r.value=r.max;
   const h=o.hist[+r.value],W=c.width,H=c.height,L=40,B=30,sx=g=>L+(W-L-10)*(g-C.lo)/(C.hi-C.lo),sy=g=>H-B-(H-B-10)*(g-C.lo)/(C.hi-C.lo);
   x.strokeStyle='#243049';x.strokeRect(L,10,W-L-10,H-B-10);x.fillStyle='#94a3b8';x.font='11px sans-serif';
@@ -582,8 +625,9 @@ $('bDemo').onclick=async()=>{
   if(S.busy)return;S.opt=null;$('pMsg').textContent='optimizing…';
   const sc=getScn(),seed=num('seed',0,1e6),base=[num('g1',7,60),num('g2',7,60)],g=optimize(sc,seed,base,{n:num('sw',5,60),it:num('it',5,100),H:600});
   S.busy=true;let r;
-  for(;;){r=g.next();if(r.done)break;$('pMsg').textContent=`iteration ${r.value.it}/${r.value.of}`;await sleep()}
-  S.busy=false;S.opt=r.value;S.opt.evals=undefined;S.key='';
+  try{for(;;){r=g.next();if(r.done)break;$('pMsg').textContent=`iteration ${r.value.it}/${r.value.of}`;await sleep()}}
+  catch(e){$('pMsg').textContent='Error: '+e.message;return}finally{S.busy=false}
+  S.opt=r.value;S.key='';
   $('pMsg').textContent=`done: plan [${r.value.best}]`;$('prange').value=r.value.hist.length-1;drawPso()
 };
 // experiments
@@ -595,40 +639,47 @@ const ESC=[
   ['rush','Thane-Belapur Rd (Rush Hour)'],
   ['random','Randomized']
 ];
-$('eScn').innerHTML=ESC.map(s=>`<label style="flex-direction:row;gap:5px;align-items:center"><input type="checkbox" class="esc" value="${s[0]}" checked style="width:auto">${s[1]}</label>`).join('');
+$('eScn').innerHTML=ESC.map(s=>`<label class="opt"><input type="checkbox" class="esc" value="${s[0]}" checked>${s[1]}</label>`).join('');
+function expWarn(){$('eWarn').textContent=durWarn(num('eDur',120,1800),[...document.querySelectorAll('.esc:checked')].map(e=>e.value),$('eAd').checked).join(' ')}
+$('eScn').onchange=expWarn;$('eDur').oninput=expWarn;$('eAd').onchange=expWarn;expWarn();
 async function runExp(){
-  if(S.busy)return;S.busy=true;$('bExp').disabled=true;
+  if(S.busy)return;
+  try{await runExpCore()}catch(e){$('eMsg').textContent='Error: '+e.message;announce('Error: '+e.message)}finally{S.busy=false;$('bExp').disabled=false}
+}
+async function runExpCore(){
+  S.busy=true;$('bExp').disabled=true;
   const K=[...document.querySelectorAll('.esc:checked')].map(e=>e.value),tr=num('eTr',1,10),T=num('eDur',120,1800),seed=num('eSeed',0,1e6),n=num('eSw',5,60),it=num('eIt',5,100),base=[num('eg1',7,60),num('eg2',7,60)],ad=$('eAd').checked;
-  if(!K.length||base[0]+base[1]>C.cap){$('eMsg').textContent='Select a scenario; fixed g1+g2 ≤ 110.';S.busy=false;$('bExp').disabled=false;return}
+  if(!K.length||base[0]+base[1]>C.cap){$('eMsg').textContent='Pick at least one scenario, and keep fixed g1+g2 ≤ 110.';S.busy=false;$('bExp').disabled=false;return}
   const rows=[],avg=L=>{const o={};for(const m of MET)o[m[0]]=L.reduce((a,b)=>a+b[m[0]],0)/L.length;o.qavg=L.reduce((a,b)=>a+b.qavg,0)/L.length;return o};
   let done=0;const tot=K.length;
   for(const k of K){
     const sc=k==='random'?randScn(seed):SCN[k];$('eMsg').textContent=`${sc.n||k}: optimizing PSO…`;
     const g=optimize(sc,seed,base,{n,it,H:Math.min(600,T)});let r;
-    for(;;){r=g.next();if(r.done)break;$('eProg').style.width=(100*(done+r.value.it/it*.7)/tot)+'%';await sleep()}
+    for(;;){r=g.next();if(r.done)break;setProg('eProg',100*(done+r.value.it/it*.7)/tot);await sleep()}
     const best=r.value.best,B=[],P=[],A=[];
     for(let i=0;i<tr;i++){
       const arr=genArr(sc,seed+i,T);$('eMsg').textContent=`${sc.n||k}: trial ${i+1}/${tr}`;
       B.push(run(arr,base,T));P.push(run(arr,best,T));
       if(ad)A.push(adaptive(sc,arr,T,base,seed+i));await sleep()
     }
-    const nm=sc.n||k;rows.push({s:nm,c:'Fixed ['+base+']',...avg(B)},{s:nm,c:'PSO ['+best+']',...avg(P)});
-    if(ad)rows.push({s:nm,c:'Adaptive PSO',...avg(A)});
-    done++;$('eProg').style.width=(100*done/tot)+'%';S.opt=r.value;S.opt.evals=undefined
+    const nm=sc.n||k,ex=(L,w)=>({dsd:sd(L,'delay'),won:w,nt:tr}),wn=L=>L.filter((x,i)=>x.delay<B[i].delay).length;
+    rows.push({s:nm,c:'Fixed ['+base+']',...avg(B),...ex(B,null)},{s:nm,c:'PSO ['+best+']',...avg(P),...ex(P,wn(P))});
+    if(ad)rows.push({s:nm,c:'Adaptive PSO',...avg(A),...ex(A,wn(A))});
+    done++;setProg('eProg',100*done/tot);S.opt=r.value
   }
-  S.lastExp={rows,tr,T,seed,n,it,base};showExp();S.busy=false;$('bExp').disabled=false;$('bCsv').disabled=$('bRpt').disabled=false;
-  $('eMsg').textContent='Done — simulated results, averaged over '+tr+' held-out trial(s).'
+  S.lastExp={rows,tr,T,seed,n,it,base,ad,warn:durWarn(T,K,ad)};showExp();S.busy=false;$('bExp').disabled=false;$('bCsv').disabled=$('bRpt').disabled=false;
+  $('eMsg').textContent='Done. Simulated results, averaged over '+tr+' held-out trial(s).';announce($('eMsg').textContent)
 }
 function showExp(){
   const E=S.lastExp,rows=E.rows;
-  let h='<table><tr><th>Scenario</th><th>Controller</th><th>Avg wait (s)</th><th>Avg delay (s)</th><th>Max queue</th><th>Served</th><th>Throughput/min</th><th>Total delay (veh·s)</th></tr>';
-  for(const r of rows)h+=`<tr><td>${r.s}</td><td>${r.c}</td>${MET.map(m=>`<td>${r[m[0]].toFixed(1)}</td>`).join('')}</tr>`;
-  h+='</table><h3 style="margin-top:12px">Difference vs fixed-time (positive = controller better)</h3><table><tr><th>Scenario</th><th>Controller</th>'+MET.map(m=>`<th>${m[1]}</th>`).join('')+'</tr>';
+  let h='<table><caption class="sr">Average results per scenario and controller</caption><thead><tr><th scope="col">Scenario</th><th scope="col">Controller</th><th scope="col">Avg wait (s)</th><th scope="col">Avg delay (s)</th><th scope="col">Max queue</th><th scope="col">Served</th><th scope="col">Throughput/min</th><th scope="col">Total delay (veh·s)</th><th scope="col">Delay SD (s)</th><th scope="col">Won vs Fixed</th></tr></thead><tbody>';
+  for(const r of rows)h+=`<tr><td>${r.s}</td><td>${r.c}</td>${MET.map(m=>`<td>${r[m[0]].toFixed(1)}</td>`).join('')}<td>${r.dsd.toFixed(1)}</td><td>${r.won===null?'–':r.won+' / '+r.nt}</td></tr>`;
+  h+='</tbody></table><h3 class="after-table">Difference vs fixed-time (positive = controller better)</h3><table><caption class="sr">Percentage difference from the fixed-time baseline</caption><thead><tr><th scope="col">Scenario</th><th scope="col">Controller</th>'+MET.map(m=>`<th scope="col">${m[1]}</th>`).join('')+'</tr></thead><tbody>';
   for(let i=0;i<rows.length;){
     const b=rows[i];let j=i+1;while(rows[j]&&rows[j].s===b.s&&!rows[j].c.startsWith('Fixed'))j++;
     for(let k=i+1;k<j;k++)h+=`<tr><td>${b.s}</td><td>${rows[k].c}</td>${MET.map(m=>impTxt(b[m[0]],rows[k][m[0]],m[2])).join('')}</tr>`;i=j
   }
-  $('eRes').innerHTML=h+'</table>';
+  $('eRes').innerHTML=h+'</tbody></table>';
   const sc=[...new Set(rows.map(r=>r.s))],cs=[...new Set(rows.map(r=>r.c.split(' [')[0]))],cols={Fixed:'#f59e0b',PSO:'#a78bfa','Adaptive PSO':'#38bdf8'};
   const c=$('eBar'),x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);
   const mx=Math.max(...rows.map(r=>r.wait),1)*1.15,gw=(W-50)/sc.length;x.font='12px sans-serif';
@@ -642,17 +693,23 @@ function showExp(){
   });
   cs.forEach((cn,j)=>{x.fillStyle=cols[cn];x.fillText('■ '+cn,60+j*110,14)});
   const f=rows.filter(r=>r.c.startsWith('PSO')),w=f.filter((r,i)=>{const b=rows.find(q=>q.s===r.s&&q.c.startsWith('Fixed'));return r.delay<b.delay}).length;
-  $('kpi').innerHTML=`<div class="kp"><div><span>Scenarios tested</span><b>${f.length}</b></div><div><span>PSO lower delay in</span><b>${w} / ${f.length}</b></div><div><span>Trials each</span><b>${E.tr}</b></div></div><p class="m">Measured, simulated; details in Experiments.</p>`
+  $('kpi').innerHTML=`<dl class="kp"><div><dt>Scenarios tested</dt><dd>${f.length}</dd></div><div><dt>PSO lower delay in</dt><dd>${w} / ${f.length}</dd></div><div><dt>PSO won (trials)</dt><dd>${f.reduce((a,r)=>a+r.won,0)} / ${f.length*E.tr}</dd></div><div><dt>Trials each</dt><dd>${E.tr}</dd></div></dl><p class="m">Simulated results. The full table is in Experiments.</p>`
 }
 function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 const csvEsc=v=>/[",\n]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':v;
-function toCsv(rows){return['scenario,controller,avg_wait_s,avg_delay_s,max_queue,vehicles_served,throughput_per_min,total_delay_veh_s',...rows.map(r=>[r.s,r.c,r.wait,r.delay,r.qmax,r.served,r.thr,r.total].map((v,i)=>csvEsc(i<2?v:(+v).toFixed(3))).join(','))].join('\n')}
+function toCsv(rows){return['scenario,controller,avg_wait_s,avg_delay_s,max_queue,vehicles_served,throughput_per_min,total_delay_veh_s,delay_sd_s,trials_won,trials',...rows.map(r=>[r.s,r.c,r.wait,r.delay,r.qmax,r.served,r.thr,r.total].map((v,i)=>csvEsc(i<2?v:(+v).toFixed(3))).concat([r.dsd.toFixed(3),r.won===null?'':r.won,r.nt]).join(','))].join('\n')}
 $('bExp').onclick=runExp;
 $('bCsv').onclick=()=>dl('trafficmind_results.csv',toCsv(S.lastExp.rows),'text/csv');
-$('bRpt').onclick=()=>{
-  const E=S.lastExp;
-  dl('trafficmind_report.md',`# TrafficMind experiment report (simulated)\n\nSeed ${E.seed}, ${E.tr} held-out trial(s), ${E.T}s each, PSO swarm ${E.n} x ${E.it} iterations, fixed plan [${E.base}].\nPSO optimized on a separate training sample (seed+1000). All values are simulated, not real-world measurements.\n\n\`\`\`\n${toCsv(E.rows)}\n\`\`\`\n`,'text/markdown')
-};
+function report(E){
+  const rows=E.rows,L=['| Scenario | Controller | Delay (s) ± SD | Wait (s) | Max queue | Served | Won vs Fixed | Delay change |','|---|---|---|---|---|---|---|---|'];
+  for(const r of rows){
+    const b=rows.find(q=>q.s===r.s&&q.c.startsWith('Fixed')),ch=r===b||!b.delay?null:(r.delay-b.delay)/b.delay*100;
+    L.push(`| ${r.s} | ${r.c} | ${r.delay.toFixed(1)} ± ${r.dsd.toFixed(1)} | ${r.wait.toFixed(1)} | ${r.qmax.toFixed(1)} | ${r.served.toFixed(1)} | ${r.won===null?'-':r.won+'/'+r.nt} | ${ch===null?'-':(ch>0?'+':'')+ch.toFixed(1)+'%'} |`)
+  }
+  return `# TrafficMind experiment report (simulated)\n\n## Setup\n\n- Seed ${E.seed}, ${E.tr} held-out trial(s), ${E.T} s each\n- PSO swarm ${E.n} x ${E.it} iterations, tuned on a separate training sample (seed+1000)\n- Fixed plan [${E.base}]; adaptive PSO ${E.ad?'included':'not included'}\n\n## Results\n\nLower delay is better. "Won vs Fixed" counts trials where the controller's mean delay was below the fixed-time plan's. Delay change is relative to Fixed (negative is better).\n\n${L.join('\n')}\n\n## Caveats\n\n${E.warn.length?E.warn.map(w=>'- '+w).join('\n'):'- None flagged for these settings.'}\n- Single lane per approach, straight movements only, no pedestrians, no sensor noise.\n- All values are simulated, not real-world measurements.\n\n## Raw data (CSV)\n\n\`\`\`\n${toCsv(rows)}\n\`\`\`\n`
+}
+$('bRpt').onclick=()=>dl('trafficmind_report.md',report(S.lastExp),'text/markdown');
+simWarn();
 reset();
 </script>
 </body>
