@@ -77,11 +77,15 @@ The project has two parts:
 
 ## Screenshots
 
-**Final comparison of one simulator run (Vashi Plaza, heavy north-south traffic):**
-
 **Experiment Lab results (all six scenarios, 3 held-out trials):**
+![Experiment Lab Results](experiments-results.png)
 
-**PSO visualizer: particles in the `(g₁, g₂)` search space (left) and fitness per iteration (right):**
+**Live simulator run (Balanced / Palm Beach Rd):**
+![Live Simulator View](simulator-live.png)
+
+**Live simulation run (Sion-Panvel Expy - Heavy E-W):**
+![Sion-Panvel Simulation](simulator-sion.png)
+
 
 ### Reading the simulator screen
 
