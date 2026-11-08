@@ -154,8 +154,6 @@ th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: l
 .pso-title { color: #c4b5fd; }
 .warn { border-left: 4px solid var(--a); }
 .after-table { margin-top: 12px; }
-.note { color: #fcd34d; font-size: 13px; margin: 4px 0; }
-.note:empty { display: none; }
 ol li, ul li { margin: 4px 0; }
 code { background: #0f172a; padding: 1px 5px; border-radius: 5px; }
 </style>
@@ -237,15 +235,14 @@ code { background: #0f172a; padding: 1px 5px; border-radius: 5px; }
     </div>
     <div class="row">
       <button type="button" class="pri" id="bStart">Start</button>
-      <button type="button" id="bPause" disabled>Pause</button>
-      <button type="button" id="bResume" disabled>Resume</button>
+      <button type="button" id="bPause">Pause</button>
+      <button type="button" id="bResume">Resume</button>
       <button type="button" id="bReset">Reset</button>
       <span class="m" id="spdLbl">Speed</span><span id="spd" role="group" aria-labelledby="spdLbl"></span>
-      <span id="msg" class="tag">idle</span>
+      <span id="msg" class="tag" role="status">idle</span>
     </div>
     <div class="bar" role="progressbar" aria-label="Optimization progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="prog"></span></div>
     <div class="m small" id="optinfo">Both controllers get the same vehicles. PSO tunes itself on a separate training sample first, then gets tested on this one.</div>
-    <p class="note" id="sWarn" aria-live="polite"></p>
   </div>
   <div class="grid">
     <article class="card">
@@ -282,7 +279,7 @@ code { background: #0f172a; padding: 1px 5px; border-radius: 5px; }
     <h2 id="expTitle">Experiment lab</h2>
     <p class="m">For each scenario, PSO is tuned on a training arrival sample (seed+1000). Then both controllers are tested on the same held-out trial seeds and the results are averaged. Everything here is simulated.</p>
     <div class="row">
-      <label>Trials<input type="number" id="eTr" value="5" min="1" max="10"></label>
+      <label>Trials<input type="number" id="eTr" value="3" min="1" max="10"></label>
       <label>Duration (s)<input type="number" id="eDur" value="600" min="120" max="1800"></label>
       <label>Seed<input type="number" id="eSeed" value="42"></label>
       <label>Swarm size<input type="number" id="eSw" value="20" min="5" max="60"></label>
@@ -291,15 +288,14 @@ code { background: #0f172a; padding: 1px 5px; border-radius: 5px; }
       <label>Fixed g₂<input type="number" id="eg2" value="30" min="7" max="60"></label>
     </div>
     <div class="row" id="eScn" role="group" aria-label="Scenarios to test"></div>
-    <p class="note" id="eWarn" aria-live="polite"></p>
     <div class="row">
-      <label class="opt"><input type="checkbox" id="eAd" checked>Also test rolling-horizon adaptive PSO (slower)</label>
+      <label class="opt"><input type="checkbox" id="eAd">Also test rolling-horizon adaptive PSO (slower)</label>
     </div>
     <div class="row">
       <button type="button" class="pri" id="bExp">Run Experiment</button>
       <button type="button" id="bCsv" disabled>Export CSV</button>
       <button type="button" id="bRpt" disabled>Download report</button>
-      <span id="eMsg" class="m"></span>
+      <span id="eMsg" class="m" role="status"></span>
     </div>
     <div class="bar" role="progressbar" aria-label="Experiment progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="eProg"></span></div>
   </article>
@@ -327,7 +323,7 @@ code { background: #0f172a; padding: 1px 5px; border-radius: 5px; }
     </ol>
     <div class="row">
       <button type="button" class="pri" id="bDemo">Run a demo optimization (uses the simulator's current scenario)</button>
-      <span id="pMsg" class="m"></span>
+      <span id="pMsg" class="m" role="status"></span>
     </div>
   </article>
   <div class="grid">
@@ -371,7 +367,6 @@ code { background: #0f172a; padding: 1px 5px; border-radius: 5px; }
 </div>
 </main>
 <footer>Educational simulation. Not for real signal control.</footer>
-<div id="live" class="sr" role="status" aria-live="polite"></div>
 
 <script>
 const C={L:150,box:14,ex:100,vf:13.9,a:2.5,b:3.5,s0:2,Th:1.2,amber:3,ar:2,dt:0.1,lo:7,hi:60,cap:110};C.P=C.L+C.box+C.ex;
@@ -489,41 +484,30 @@ function loadRates(){
   const sc=k==='random'?randScn(+$('seed').value):SCN[k];
   sc.segs[0].r.forEach((v,i)=>$('r'+i).value=v)
 }
-$('scn').onchange=()=>{loadRates();simWarn()};$('dur').oninput=simWarn;$('seed').onchange=()=>{if($('scn').value==='random')loadRates()};
-[0,1,2,3].forEach(i=>$('r'+i).oninput=()=>{$('scn').value='custom';simWarn()});loadRates();
+$('scn').onchange=loadRates;$('seed').onchange=()=>{if($('scn').value==='random')loadRates()};
+[0,1,2,3].forEach(i=>$('r'+i).oninput=()=>$('scn').value='custom');loadRates();
 function getScn(){
   const k=$('scn').value,m=+$('dens').value;
   let sc=k==='custom'?{segs:[{t:0,r:[0,1,2,3].map(i=>+$('r'+i).value||0)}]}:k==='random'?randScn(+$('seed').value):SCN[k];
   return{segs:sc.segs.map(g=>({t:g.t,r:g.r.map(v=>v*m)}))}
 }
 const num=(id,lo,hi)=>Math.min(hi,Math.max(lo,Math.round(+$(id).value)||lo));
-const announce=t=>{$('live').textContent=t};
-function ctl(){$('bPause').disabled=!S.run;$('bResume').disabled=!(S.sims&&!S.run&&!S.ended)}
-function setMsg(t){$('msg').textContent=t;if(!/^optimizing/.test(t))announce(t);ctl()}
-const durWarn=(T,keys,ad)=>{
-  const w=[];
-  if(ad&&T<300)w.push('Adaptive PSO needs about 300 s before it can switch plans, so at '+T+' s it will match Fixed.');
-  if(keys.some(k=>k==='surge'||k==='rush')&&T<450)w.push('Sudden surge and Rush hour change demand between 150 s and 420 s. Use at least 450 s to see the full pattern.');
-  return w
-};
-function simWarn(){$('sWarn').textContent=durWarn(num('dur',120,1800),[$('scn').value],false).filter(x=>!x.startsWith('Adaptive')).join(' ')}
-const sd=(L,k)=>{const m=L.reduce((a,b)=>a+b[k],0)/L.length;return L.length>1?Math.sqrt(L.reduce((a,b)=>a+(b[k]-m)**2,0)/(L.length-1)):0};
+function setMsg(t){$('msg').textContent=t}
 async function ensurePlan(sc,seed,base){
   const key=JSON.stringify([sc,seed,base,$('sw').value,$('it').value]);if(S.opt&&S.key===key)return S.opt;
   S.busy=true;const n=num('sw',5,60),it=num('it',5,100),g=optimize(sc,seed,base,{n,it,H:600});let r;
-  try{for(;;){
+  for(;;){
     r=g.next();if(r.done)break;
     setProg('prog',100*r.value.it/it);setMsg(`optimizing ${r.value.it}/${it}`);
     $('optinfo').textContent=`PSO best fitness ${r.value.best.toFixed(3)} · plan [${r.value.gb}] (baseline fitness ${(1.3).toFixed(2)})`;await sleep()
-  }}finally{S.busy=false}
-  S.opt={...r.value};S.key=key;return S.opt
+  }
+  S.opt={...r.value};S.key=key;S.busy=false;return S.opt
 }
 async function start(){
   if(S.busy)return;
   const sc=getScn(),seed=num('seed',0,1e6),T=num('dur',120,1800),base=[num('g1',7,60),num('g2',7,60)];
   if(base[0]+base[1]>C.cap){setMsg('fixed g1+g2 must be ≤ 110');return}
-  S.run=false;S.sims=null;ctl();$('bStart').disabled=true;
-  let o;try{o=await ensurePlan(sc,seed,base)}catch(e){setMsg('error: '+e.message);return}finally{$('bStart').disabled=false}
+  S.run=false;$('bStart').disabled=true;const o=await ensurePlan(sc,seed,base);$('bStart').disabled=false;
   S.arr=genArr(sc,seed,T);S.sims=[new Sim(S.arr,base,T),new Sim(S.arr,o.best,T)];S.hist=[[],[]];S.ended=false;S.acc=0;S.last=performance.now();S.run=true;S.plans=[base,o.best];
   setMsg('running');setProg('prog',100);$('rep').innerHTML='<h3>Final comparison</h3><div class="m">Shows up when the run ends.</div>';requestAnimationFrame(loop)
 }
@@ -625,9 +609,8 @@ $('bDemo').onclick=async()=>{
   if(S.busy)return;S.opt=null;$('pMsg').textContent='optimizing…';
   const sc=getScn(),seed=num('seed',0,1e6),base=[num('g1',7,60),num('g2',7,60)],g=optimize(sc,seed,base,{n:num('sw',5,60),it:num('it',5,100),H:600});
   S.busy=true;let r;
-  try{for(;;){r=g.next();if(r.done)break;$('pMsg').textContent=`iteration ${r.value.it}/${r.value.of}`;await sleep()}}
-  catch(e){$('pMsg').textContent='Error: '+e.message;return}finally{S.busy=false}
-  S.opt=r.value;S.key='';
+  for(;;){r=g.next();if(r.done)break;$('pMsg').textContent=`iteration ${r.value.it}/${r.value.of}`;await sleep()}
+  S.busy=false;S.opt=r.value;S.opt.evals=undefined;S.key='';
   $('pMsg').textContent=`done: plan [${r.value.best}]`;$('prange').value=r.value.hist.length-1;drawPso()
 };
 // experiments
@@ -640,14 +623,8 @@ const ESC=[
   ['random','Randomized']
 ];
 $('eScn').innerHTML=ESC.map(s=>`<label class="opt"><input type="checkbox" class="esc" value="${s[0]}" checked>${s[1]}</label>`).join('');
-function expWarn(){$('eWarn').textContent=durWarn(num('eDur',120,1800),[...document.querySelectorAll('.esc:checked')].map(e=>e.value),$('eAd').checked).join(' ')}
-$('eScn').onchange=expWarn;$('eDur').oninput=expWarn;$('eAd').onchange=expWarn;expWarn();
 async function runExp(){
-  if(S.busy)return;
-  try{await runExpCore()}catch(e){$('eMsg').textContent='Error: '+e.message;announce('Error: '+e.message)}finally{S.busy=false;$('bExp').disabled=false}
-}
-async function runExpCore(){
-  S.busy=true;$('bExp').disabled=true;
+  if(S.busy)return;S.busy=true;$('bExp').disabled=true;
   const K=[...document.querySelectorAll('.esc:checked')].map(e=>e.value),tr=num('eTr',1,10),T=num('eDur',120,1800),seed=num('eSeed',0,1e6),n=num('eSw',5,60),it=num('eIt',5,100),base=[num('eg1',7,60),num('eg2',7,60)],ad=$('eAd').checked;
   if(!K.length||base[0]+base[1]>C.cap){$('eMsg').textContent='Pick at least one scenario, and keep fixed g1+g2 ≤ 110.';S.busy=false;$('bExp').disabled=false;return}
   const rows=[],avg=L=>{const o={};for(const m of MET)o[m[0]]=L.reduce((a,b)=>a+b[m[0]],0)/L.length;o.qavg=L.reduce((a,b)=>a+b.qavg,0)/L.length;return o};
@@ -662,18 +639,17 @@ async function runExpCore(){
       B.push(run(arr,base,T));P.push(run(arr,best,T));
       if(ad)A.push(adaptive(sc,arr,T,base,seed+i));await sleep()
     }
-    const nm=sc.n||k,ex=(L,w)=>({dsd:sd(L,'delay'),won:w,nt:tr}),wn=L=>L.filter((x,i)=>x.delay<B[i].delay).length;
-    rows.push({s:nm,c:'Fixed ['+base+']',...avg(B),...ex(B,null)},{s:nm,c:'PSO ['+best+']',...avg(P),...ex(P,wn(P))});
-    if(ad)rows.push({s:nm,c:'Adaptive PSO',...avg(A),...ex(A,wn(A))});
-    done++;setProg('eProg',100*done/tot);S.opt=r.value
+    const nm=sc.n||k;rows.push({s:nm,c:'Fixed ['+base+']',...avg(B)},{s:nm,c:'PSO ['+best+']',...avg(P)});
+    if(ad)rows.push({s:nm,c:'Adaptive PSO',...avg(A)});
+    done++;setProg('eProg',100*done/tot);S.opt=r.value;S.opt.evals=undefined
   }
-  S.lastExp={rows,tr,T,seed,n,it,base,ad,warn:durWarn(T,K,ad)};showExp();S.busy=false;$('bExp').disabled=false;$('bCsv').disabled=$('bRpt').disabled=false;
-  $('eMsg').textContent='Done. Simulated results, averaged over '+tr+' held-out trial(s).';announce($('eMsg').textContent)
+  S.lastExp={rows,tr,T,seed,n,it,base};showExp();S.busy=false;$('bExp').disabled=false;$('bCsv').disabled=$('bRpt').disabled=false;
+  $('eMsg').textContent='Done. Simulated results, averaged over '+tr+' held-out trial(s).'
 }
 function showExp(){
   const E=S.lastExp,rows=E.rows;
-  let h='<table><caption class="sr">Average results per scenario and controller</caption><thead><tr><th scope="col">Scenario</th><th scope="col">Controller</th><th scope="col">Avg wait (s)</th><th scope="col">Avg delay (s)</th><th scope="col">Max queue</th><th scope="col">Served</th><th scope="col">Throughput/min</th><th scope="col">Total delay (veh·s)</th><th scope="col">Delay SD (s)</th><th scope="col">Won vs Fixed</th></tr></thead><tbody>';
-  for(const r of rows)h+=`<tr><td>${r.s}</td><td>${r.c}</td>${MET.map(m=>`<td>${r[m[0]].toFixed(1)}</td>`).join('')}<td>${r.dsd.toFixed(1)}</td><td>${r.won===null?'–':r.won+' / '+r.nt}</td></tr>`;
+  let h='<table><caption class="sr">Average results per scenario and controller</caption><thead><tr><th scope="col">Scenario</th><th scope="col">Controller</th><th scope="col">Avg wait (s)</th><th scope="col">Avg delay (s)</th><th scope="col">Max queue</th><th scope="col">Served</th><th scope="col">Throughput/min</th><th scope="col">Total delay (veh·s)</th></tr></thead><tbody>';
+  for(const r of rows)h+=`<tr><td>${r.s}</td><td>${r.c}</td>${MET.map(m=>`<td>${r[m[0]].toFixed(1)}</td>`).join('')}</tr>`;
   h+='</tbody></table><h3 class="after-table">Difference vs fixed-time (positive = controller better)</h3><table><caption class="sr">Percentage difference from the fixed-time baseline</caption><thead><tr><th scope="col">Scenario</th><th scope="col">Controller</th>'+MET.map(m=>`<th scope="col">${m[1]}</th>`).join('')+'</tr></thead><tbody>';
   for(let i=0;i<rows.length;){
     const b=rows[i];let j=i+1;while(rows[j]&&rows[j].s===b.s&&!rows[j].c.startsWith('Fixed'))j++;
@@ -693,23 +669,17 @@ function showExp(){
   });
   cs.forEach((cn,j)=>{x.fillStyle=cols[cn];x.fillText('■ '+cn,60+j*110,14)});
   const f=rows.filter(r=>r.c.startsWith('PSO')),w=f.filter((r,i)=>{const b=rows.find(q=>q.s===r.s&&q.c.startsWith('Fixed'));return r.delay<b.delay}).length;
-  $('kpi').innerHTML=`<dl class="kp"><div><dt>Scenarios tested</dt><dd>${f.length}</dd></div><div><dt>PSO lower delay in</dt><dd>${w} / ${f.length}</dd></div><div><dt>PSO won (trials)</dt><dd>${f.reduce((a,r)=>a+r.won,0)} / ${f.length*E.tr}</dd></div><div><dt>Trials each</dt><dd>${E.tr}</dd></div></dl><p class="m">Simulated results. The full table is in Experiments.</p>`
+  $('kpi').innerHTML=`<dl class="kp"><div><dt>Scenarios tested</dt><dd>${f.length}</dd></div><div><dt>PSO lower delay in</dt><dd>${w} / ${f.length}</dd></div><div><dt>Trials each</dt><dd>${E.tr}</dd></div></dl><p class="m">Simulated results. The full table is in Experiments.</p>`
 }
 function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 const csvEsc=v=>/[",\n]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':v;
-function toCsv(rows){return['scenario,controller,avg_wait_s,avg_delay_s,max_queue,vehicles_served,throughput_per_min,total_delay_veh_s,delay_sd_s,trials_won,trials',...rows.map(r=>[r.s,r.c,r.wait,r.delay,r.qmax,r.served,r.thr,r.total].map((v,i)=>csvEsc(i<2?v:(+v).toFixed(3))).concat([r.dsd.toFixed(3),r.won===null?'':r.won,r.nt]).join(','))].join('\n')}
+function toCsv(rows){return['scenario,controller,avg_wait_s,avg_delay_s,max_queue,vehicles_served,throughput_per_min,total_delay_veh_s',...rows.map(r=>[r.s,r.c,r.wait,r.delay,r.qmax,r.served,r.thr,r.total].map((v,i)=>csvEsc(i<2?v:(+v).toFixed(3))).join(','))].join('\n')}
 $('bExp').onclick=runExp;
 $('bCsv').onclick=()=>dl('trafficmind_results.csv',toCsv(S.lastExp.rows),'text/csv');
-function report(E){
-  const rows=E.rows,L=['| Scenario | Controller | Delay (s) ± SD | Wait (s) | Max queue | Served | Won vs Fixed | Delay change |','|---|---|---|---|---|---|---|---|'];
-  for(const r of rows){
-    const b=rows.find(q=>q.s===r.s&&q.c.startsWith('Fixed')),ch=r===b||!b.delay?null:(r.delay-b.delay)/b.delay*100;
-    L.push(`| ${r.s} | ${r.c} | ${r.delay.toFixed(1)} ± ${r.dsd.toFixed(1)} | ${r.wait.toFixed(1)} | ${r.qmax.toFixed(1)} | ${r.served.toFixed(1)} | ${r.won===null?'-':r.won+'/'+r.nt} | ${ch===null?'-':(ch>0?'+':'')+ch.toFixed(1)+'%'} |`)
-  }
-  return `# TrafficMind experiment report (simulated)\n\n## Setup\n\n- Seed ${E.seed}, ${E.tr} held-out trial(s), ${E.T} s each\n- PSO swarm ${E.n} x ${E.it} iterations, tuned on a separate training sample (seed+1000)\n- Fixed plan [${E.base}]; adaptive PSO ${E.ad?'included':'not included'}\n\n## Results\n\nLower delay is better. "Won vs Fixed" counts trials where the controller's mean delay was below the fixed-time plan's. Delay change is relative to Fixed (negative is better).\n\n${L.join('\n')}\n\n## Caveats\n\n${E.warn.length?E.warn.map(w=>'- '+w).join('\n'):'- None flagged for these settings.'}\n- Single lane per approach, straight movements only, no pedestrians, no sensor noise.\n- All values are simulated, not real-world measurements.\n\n## Raw data (CSV)\n\n\`\`\`\n${toCsv(rows)}\n\`\`\`\n`
-}
-$('bRpt').onclick=()=>dl('trafficmind_report.md',report(S.lastExp),'text/markdown');
-simWarn();
+$('bRpt').onclick=()=>{
+  const E=S.lastExp;
+  dl('trafficmind_report.md',`# TrafficMind experiment report (simulated)\n\nSeed ${E.seed}, ${E.tr} held-out trial(s), ${E.T}s each, PSO swarm ${E.n} x ${E.it} iterations, fixed plan [${E.base}].\nPSO was tuned on a separate training sample (seed+1000). All values are simulated, not real-world measurements.\n\n\`\`\`\n${toCsv(E.rows)}\n\`\`\`\n`,'text/markdown')
+};
 reset();
 </script>
 </body>
