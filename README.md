@@ -78,13 +78,13 @@ The project has two parts:
 ## Screenshots
 
 **Experiment Lab results (all six scenarios, 3 held-out trials):**
-![Experiment Lab Results](experiments-results.png)
+![Experiment Lab Results](docs/experiments-results.png)
 
 **Live simulator run (Balanced / Palm Beach Rd):**
-![Live Simulator View](simulator-live.png)
+![Live Simulator View](docs/simulator-live.png)
 
 **Live simulation run (Sion-Panvel Expy - Heavy E-W):**
-![Sion-Panvel Simulation](simulator-sion.png)
+![Sion-Panvel Simulation](docs/simulator-sion.png)
 
 
 ### Reading the simulator screen
